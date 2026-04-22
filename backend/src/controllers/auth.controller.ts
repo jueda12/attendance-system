@@ -7,10 +7,20 @@ import { AuditService } from '../services/audit.service.js'
 
 const authService = new AuthService()
 const auditService = new AuditService()
+// Password policy: minimum 12 chars, includes lowercase, uppercase, number, and special character.
+const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).+$/
 
 export const loginSchema = z.object({
   username: z.string().min(1, '請輸入帳號'),
   password: z.string().min(1, '請輸入密碼')
+})
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, '請輸入目前密碼'),
+  newPassword: z
+    .string()
+    .min(12, '新密碼至少 12 個字元')
+    .regex(PASSWORD_COMPLEXITY_REGEX, '新密碼需包含大小寫英文字母、數字及特殊符號')
 })
 
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -21,7 +31,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       throw new AppError('登入已被鎖定，請 15 分鐘後再試', 429)
     }
 
-    const token = await authService.login(req.body.username, req.body.password, ipAddress)
+    const loginResult = await authService.login(req.body.username, req.body.password, ipAddress)
     resetFailedLogins(ipAddress)
 
     res.locals.username = req.body.username
@@ -31,7 +41,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     res.locals.action = 'login'
     res.locals.entity = 'auth'
 
-    res.json({ token })
+    res.json(loginResult)
   } catch (error) {
     const ipAddress = req.ip ?? ''
     recordFailedLogin(ipAddress)
@@ -46,6 +56,19 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       ipAddress,
       userAgent: req.headers['user-agent'] ?? null
     })
+    next(error)
+  }
+}
+
+export async function changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    await authService.changePassword(req.user!.id, req.body.currentPassword, req.body.newPassword)
+    res.locals.action = 'password_change'
+    res.locals.entity = 'auth'
+    res.locals.entityId = req.user!.id
+    res.locals.newValue = { passwordChanged: true, mustChangePwd: false }
+    res.json({ success: true })
+  } catch (error) {
     next(error)
   }
 }

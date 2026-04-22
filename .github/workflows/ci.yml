@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel previous in-progress runs when a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------
+  # Backend: lint, typecheck, test, coverage
+  # ---------------------------------------------------------
+  backend:
+    name: Backend (lint / typecheck / test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run migrations (test DB)
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: 'file:./test.db'
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck || npx tsc --noEmit
+
+      - name: Test with coverage
+        run: npm run test:coverage
+        env:
+          DATABASE_URL: 'file:./test.db'
+          JWT_SECRET: 'ci-only-jwt-secret-do-not-use-in-production-32chars'
+          NODE_ENV: 'test'
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage/
+          retention-days: 14
+
+  # ---------------------------------------------------------
+  # Frontend: lint, typecheck, test, build
+  # ---------------------------------------------------------
+  frontend:
+    name: Frontend (lint / typecheck / test / build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck || npx tsc --noEmit
+
+      - name: Test
+        run: npm run test -- --run
+
+      - name: Build
+        run: npm run build
+
+  # ---------------------------------------------------------
+  # Security: npm audit (high/critical only)
+  # ---------------------------------------------------------
+  audit:
+    name: Security audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Audit backend
+        working-directory: backend
+        run: npm audit --audit-level=high || true
+
+      - name: Audit frontend
+        working-directory: frontend
+        run: npm audit --audit-level=high || true
+
+  # ---------------------------------------------------------
+  # Decimal guard: reject monetary Number usage
+  # ---------------------------------------------------------
+  decimal-guard:
+    name: Decimal guard (no Number for money)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for forbidden Number arithmetic on monetary fields
+        run: |
+          # Flag suspicious patterns. Tune the regex as the codebase grows.
+          # This is a cheap heuristic; real enforcement is via code review + tests.
+          if grep -rnE "(parseFloat|Number)\s*\(\s*.*(wage|amount|salary|mpf|contribution|income|deduction)" backend/src 2>/dev/null; then
+            echo "::error::Suspicious Number/parseFloat usage on monetary field detected. Use Decimal instead."
+            exit 1
+          fi
+          echo "Decimal guard passed."

@@ -1,0 +1,137 @@
+# ==========================================
+# Dependencies
+# ==========================================
+node_modules/
+.pnpm-store/
+.yarn/
+jspm_packages/
+
+# ==========================================
+# Build outputs
+# ==========================================
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vite/
+.turbo/
+.output/
+*.tsbuildinfo
+
+# ==========================================
+# Environment & secrets
+# ==========================================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+!.env.example
+!.env.*.example
+
+*.pem
+*.key
+*.crt
+secrets/
+
+# ==========================================
+# Database (SQLite dev/prod files)
+# ==========================================
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+prisma/*.db
+prisma/dev.db*
+backend/prisma/dev.db*
+
+# Do NOT ignore schema.prisma or migrations
+!prisma/schema.prisma
+!prisma/migrations/
+
+# ==========================================
+# Prisma
+# ==========================================
+# Generated client goes inside node_modules, already covered
+# But in case custom output is used:
+backend/src/generated/
+
+# ==========================================
+# Logs
+# ==========================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pm2/
+
+# ==========================================
+# Testing / coverage
+# ==========================================
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ==========================================
+# IDE / editors
+# ==========================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# OS
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# ==========================================
+# Report output (generated Excel / PDF)
+# ==========================================
+generated-reports/
+uploads/
+tmp/
+temp/
+
+# ==========================================
+# Backups
+# ==========================================
+backups/
+*.backup
+*.bak
+
+# ==========================================
+# Misc
+# ==========================================
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.history/
+
+# ==========================================
+# Deployment artefacts that should not be committed
+# ==========================================
+ecosystem.config.local.js
+nginx/*.local.conf

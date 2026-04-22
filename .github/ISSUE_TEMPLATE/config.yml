@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 部署或操作疑問
+    url: https://github.com/YOUR_ORG/attendance-system/blob/main/docs/deployment.md
+    about: 先查閱部署文件與使用者手冊
+  - name: 業務 / 法規疑問
+    url: https://github.com/YOUR_ORG/attendance-system/blob/main/docs/legal-rules.md
+    about: 先查閱法規實現說明

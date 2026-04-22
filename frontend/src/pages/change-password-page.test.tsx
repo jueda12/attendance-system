@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import axios from 'axios'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ChangePasswordPage } from './change-password-page'
@@ -32,12 +33,14 @@ vi.mock('react-router', async () => {
 describe('ChangePasswordPage', () => {
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
   })
 
   beforeEach(() => {
     postMock.mockReset()
     refreshUserMock.mockReset()
     navigateMock.mockReset()
+    vi.spyOn(axios, 'isAxiosError').mockReturnValue(false)
   })
 
   it('renders forced password change form', () => {
@@ -96,8 +99,8 @@ describe('ChangePasswordPage', () => {
   })
 
   it('shows specific error when new password matches current password', async () => {
+    vi.mocked(axios.isAxiosError).mockReturnValue(true)
     postMock.mockRejectedValue({
-      isAxiosError: true,
       response: {
         data: {
           message: 'NEW_PASSWORD_SAME_AS_OLD'

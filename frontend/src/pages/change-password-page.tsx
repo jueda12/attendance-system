@@ -10,13 +10,16 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 
+// Keep this in sync with backend/src/controllers/auth.controller.ts PASSWORD_COMPLEXITY_REGEX.
+const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).+$/
+
 const schema = z
   .object({
     currentPassword: z.string().min(1, '請輸入目前密碼'),
     newPassword: z
       .string()
       .min(12, '新密碼至少 12 個字元')
-      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).+$/, '新密碼需包含大小寫英文字母、數字及特殊符號'),
+      .regex(PASSWORD_COMPLEXITY_REGEX, '新密碼需包含大小寫英文字母、數字及特殊符號'),
     confirmPassword: z.string().min(1, '請再次輸入新密碼')
   })
   .refine((values) => values.newPassword === values.confirmPassword, {

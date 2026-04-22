@@ -90,7 +90,7 @@ describe('AuthService', () => {
       passwordHash: 'old-hash',
       mustChangePwd: true
     })
-    verifyPassword.mockResolvedValue(true)
+    verifyPassword.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
     hashPassword.mockResolvedValue('new-hash')
     update.mockResolvedValue({})
 

@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken'
 import type { SignOptions } from 'jsonwebtoken'
-import { timingSafeEqual } from 'node:crypto'
 import { prisma } from '../lib/prisma.js'
 import { env } from '../config/env.js'
 import { AppError } from '../utils/app-error.js'
@@ -58,11 +57,7 @@ export class AuthService {
       throw new AppError('目前密碼錯誤', 401)
     }
 
-    const currentPasswordBuffer = Buffer.from(currentPassword, 'utf8')
-    const newPasswordBuffer = Buffer.from(newPassword, 'utf8')
-    const isSamePassword =
-      currentPasswordBuffer.length === newPasswordBuffer.length &&
-      timingSafeEqual(currentPasswordBuffer, newPasswordBuffer)
+    const isSamePassword = await verifyPassword(user.passwordHash, newPassword)
 
     if (isSamePassword) {
       throw new AppError('NEW_PASSWORD_SAME_AS_OLD', 400)

@@ -7,6 +7,8 @@ import { AuditService } from '../services/audit.service.js'
 
 const authService = new AuthService()
 const auditService = new AuditService()
+// Password policy: minimum 12 chars, includes lowercase, uppercase, number, and special character.
+const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).+$/
 
 export const loginSchema = z.object({
   username: z.string().min(1, '請輸入帳號'),
@@ -18,7 +20,7 @@ export const changePasswordSchema = z.object({
   newPassword: z
     .string()
     .min(12, '新密碼至少 12 個字元')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).+$/, '新密碼需包含大小寫英文字母、數字及特殊符號')
+    .regex(PASSWORD_COMPLEXITY_REGEX, '新密碼需包含大小寫英文字母、數字及特殊符號')
 })
 
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {

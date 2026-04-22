@@ -366,29 +366,52 @@ function determineScheme(workerId, asOfDate):
 - 本系統所有刪除為**軟刪除**（`status = "deleted"` 或 `deletedAt` 欄位）
 - 自動化工具（如 audit rotation）可歸檔但**不可物理刪除** 7 年以內的工資、出勤、審計紀錄
 
-### 3.6 2026 年公眾假期（系統須 seed）
+### 3.6 2026 年法定假日（系統須 seed）
 
-**17 個**法定假日（勞工處公布）。Agent 在 seed 時必須從勞工處官方網頁輸入確切日期。以下為 2026 年假期名稱清單（僅作為數量校驗基準）：
+**本系統 seed 的是「法定假日 (Statutory Holidays)」，不是「公眾假日 (General Holidays)」。** 建造業工人只享法定假日。
 
-1. 元旦
-2. 農曆年初一
-3. 農曆年初二
-4. 農曆年初三
-5. 清明節
-6. 耶穌受難節
-7. 耶穌受難節翌日
-8. 復活節星期一
-9. 勞動節
-10. 佛誕
-11. 端午節
-12. 特區成立紀念日
-13. 中秋節翌日
-14. 國慶日
-15. 重陽節
-16. 聖誕節
-17. 聖誕節後首個工作日
+**2026 年法定假日共 15 天**（勞工處官方：https://www.labour.gov.hk/tc/news/latest_holidays2026.htm）：
 
-> ⚠️ **Agent 實作提醒：** 日期從勞工處或政府統計處官方 PDF 輸入（URL: https://www.labour.gov.hk/tc/news/holidays.htm）。勿自行推斷農曆日期。
+| # | 中文名稱 | 2026 年日期 | 備註 |
+|---|---------|-----------|------|
+| 1 | 一月一日 | 2026-01-01（四）| |
+| 2 | 農曆年初一 | 2026-02-17（二）| |
+| 3 | 農曆年初二 | 2026-02-18（三）| |
+| 4 | 農曆年初三 | 2026-02-19（四）| |
+| 5 | 清明節 | 2026-04-05（日）| 適逢星期日，**僱主須於翌日（2026-04-06）補假** |
+| 6 | 復活節星期一 | 2026-04-06（一）| 2021 年《僱傭（修訂）條例》新增，**2026 年起生效** |
+| 7 | 勞動節 | 2026-05-01（五）| |
+| 8 | 佛誕 | 2026-05-24（日）| 適逢星期日，**僱主須於翌日（2026-05-25）補假** |
+| 9 | 端午節 | 2026-06-19（五）| |
+| 10 | 香港特別行政區成立紀念日 | 2026-07-01（三）| |
+| 11 | 中秋節翌日 | 2026-09-26（六）| |
+| 12 | 國慶日 | 2026-10-01（四）| |
+| 13 | 重陽節 | 2026-10-18（日）| 適逢星期日，**僱主須於翌日（2026-10-19）補假** |
+| 14 | 冬節 **或** 聖誕節 | 2026-12-22（二）**或** 2026-12-25（五）| **由僱主二擇其一** — 本系統 `SystemConfig.winter_holiday_choice` 值為 `winter_solstice`（冬節）或 `christmas`（聖誕節）|
+| 15 | 聖誕節後第一個周日 | 2026-12-26（六）| |
+
+#### 3.6.1 補假規則
+
+法定假日適逢僱員的**休息日**時，僱主應於休息日翌日補假。補假該日**不得**是另一個法定假日、另定假日、代替假日或休息日。
+
+系統對「固定週日休息日」工人的補假自動計算：若法定假日 `d` 為星期日且工人以週日為休息日 → 補假日為 `d + 1`（往後找至非法定假日之工作日）。
+
+#### 3.6.2 冬節 vs 聖誕節二擇一
+
+僱主每年只能在冬節（冬至）與聖誕節之間選**一天**作為法定假日，另一天為**平日**。
+
+**系統處理：**
+- 新增 `SystemConfig` key：`winter_holiday_choice`（`winter_solstice` | `christmas`），預設 `christmas`
+- Seed 15 天假日時，依此設定決定第 14 項 seed `2026-12-22` 還是 `2026-12-25`
+- Admin 可於 `/settings/holidays` 頁面切換（切換時觸發所有未結算糧期的 holidayWage 重算提示）
+
+#### 3.6.3 Agent 實作提醒
+
+- 日期從勞工處官方 URL 實時查驗：https://www.labour.gov.hk/tc/news/latest_holidays2026.htm
+- 勿自行推斷農曆日期
+- 勿混淆「法定假日 15 天」與「公眾假日 17 天」— 本系統只涉及前者
+- `PublicHoliday` 表的 `isStatutory` 欄位：本系統全部 seed `true`（因為我們只 seed 法定假日）；欄位保留是為了未來若需支援文職員工的 17 天公眾假日時擴充
+- 未來年度（2027+）的假日 seed：由 Phase 7 部署指引說明年度更新流程
 
 ---
 
@@ -792,7 +815,7 @@ model AuditLog {
 1. **1 位預設 admin**：`username=admin`，臨時密碼 argon2id hash，`mustChangePwd=true`
 2. **SystemConfig 完整預設值**（見 §4.3）
 3. **MinWageHistory**：至少兩筆（2025-05-01 / 42.10，2026-05-01 / 43.10）
-4. **PublicHoliday**：2026 年 17 個法定假期（日期從勞工處官方輸入）
+4. **PublicHoliday**：2026 年 **15 個法定假日**（日期與名稱對照 §3.6 表格；從勞工處官方 https://www.labour.gov.hk/tc/news/latest_holidays2026.htm 核對）。冬節/聖誕節依 `SystemConfig.winter_holiday_choice` 擇一 seed
 5. **MpfIndustryRate**：完整最新版本（從積金局官方 PDF 錄入）
 6. **（選配）Demo data**：3 家分判商、5 個地盤、20 位工人、1 個月出勤（DEV 環境）
 
@@ -808,10 +831,11 @@ model AuditLog {
 | `rainstorm_policy` | string | policy | `full_day_pay` | 黑色暴雨薪酬政策 |
 | `restday_pay_policy` | string | policy | `unpaid` | 休息日薪酬政策 |
 | `holiday_min_months` | integer | policy | `3` | 法定假日薪酬所需最少受僱月數 |
+| `winter_holiday_choice` | string | policy | `christmas` | 冬節/聖誕節法定假日二擇一（`winter_solstice` 或 `christmas`）|
 | `backdated_entry_allowed` | boolean | policy | `true` | 是否允許補錄歷史出勤 |
 | `rehire_continuity_days` | integer | policy | `180` | 離職重聘視為延續的最長日數 |
-| `梁的專案公司` | string | company | （公司繁中名稱）| 公司名稱（中）|
-| `LCK PERSONAL LTD` | string | company | （公司英文名稱）| Company Name |
+| `company_name_zh` | string | company | （公司繁中名稱）| 公司名稱（中）|
+| `company_name_en` | string | company | （公司英文名稱）| Company Name |
 | `company_logo_url` | string | company | `""` | 公司 Logo URL |
 | `jwt_expiry_hours` | integer | system | `8` | JWT token 有效期 |
 | `backup_retention_days` | integer | system | `30` | 備份保留天數 |
@@ -1203,13 +1227,44 @@ isEligible <-
    AND getContractDuration(workerId, holidayDate) >= snapshot.holidayMinMonths  // default 3
 ```
 
-**金額：**
+**金額（依《僱傭條例》第 11 條及勞工處 2026 官方說明）：**
+
+假日薪酬 = 僱員於**假日前 12 個月的每日平均工資**
+
 ```
-IF isEligible:
-    holidayPay <- basicDailyWage  // v1 simplification
+function computeHolidayDailyAverage(workerId, holidayDate):
+    endDate <- day before holidayDate
+    startDate <- endDate - 12 months + 1 day
+
+    // Collect total earnings in the 12-month window
+    totalEarnings <- SUM(Payroll.grossWage for periods overlapping [startDate, endDate])
+                     + (for periods straddling the window, prorate by overlapping days)
+
+    // Collect total days paid
+    totalDays <- count of days in window where
+                 - worker was employed (between joinDate and leaveDate)
+                 - excluding days where worker was on statutory leave (sick, maternity, etc.)
+                   AND was paid less than full wage for those days (per EO §2)
+
+    IF totalDays == 0:
+        // New hire < 12 months; fall back to basicDailyWage as ordinance permits
+        return basicDailyWage
+
+    return totalEarnings / totalDays  // with 2dp banker's rounding
 ```
 
-> ⚠️ **v1 簡化：** 正式計算按《僱傭條例》第 11 條應為「緊接法定假日前的 12 個月內所賺取的工資」平均。v1 先以 `basicDailyWage` 實作；**必須於法律顧問審閱時確認此簡化是否可接受**，否則 v1.1 升級為 12 個月平均。Copilot agent 須在 `docs/assumptions.md` 登記。
+**說明要點（依官方）：**
+- 僱主**不得**藉由減少假日前一段期間的工資來壓低假日薪酬
+- 若僱員在 12 個月內曾有法定假日、休息日、有薪年假：這些日的工資**照計入**分子（總收入）
+- 若僱員曾有疾病津貼、產假津貼、工傷期間工資：這些日**不計入**分母（按 EO §2 排除），因為這些日本身不是「正常工資」
+- 若僱員受僱不足 12 個月：以實際受僱期間計算；若完全沒有歷史薪酬資料（剛入職首次遇上假日且連續性合約剛啟動）→ 退回 `basicDailyWage`
+
+**PayrollService 必須：**
+1. 在建立 Payroll 時，對糧期內每個法定假日分別呼叫 `computeHolidayDailyAverage`
+2. 將計算過程（總收入、總天數、平均值）寫入 `calculationSnapshot.holidayBreakdown[]`
+3. 單元測試覆蓋：剛入職不足 12 個月、跨 418/468 規則變更的 12 個月窗口、曾請病假的 12 個月窗口
+
+> ⚠️ **v1 實作順序建議：** Phase 4 先實作簡化版（`basicDailyWage`）通過基本流程，Phase 4 後段補上 12 個月平均版本，並提供 migration 重算腳本。這樣可以先讓法律顧問審閱演算法，再開工寫。
 
 #### 5.4.4 restdayWage（休息日）
 

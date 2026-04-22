@@ -77,7 +77,7 @@
 - [ ] 預設管理員帳號建立（`admin` / 臨時密碼）
 - [ ] `SystemConfig` 預設值完整（min_wage, mpf_monthly_min, mpf_monthly_max 等）
 - [ ] `MpfIndustryRate` 包含至少一版的完整行業計劃費率表
-- [ ] `PublicHoliday` 包含 2026 年全部 17 個香港公眾假期
+- [ ] `PublicHoliday` 包含 2026 年全部 **15 個香港法定假日**（對照 PROJECT_SPEC.md §3.6；從勞工處官方 https://www.labour.gov.hk/tc/news/latest_holidays2026.htm 核對；冬節/聖誕節依 `SystemConfig.winter_holiday_choice` 擇一）
 - [ ] 可選：demo 資料（3 家分判商、5 個地盤、20 位工人、1 個月出勤）
 
 ### B.4 PostgreSQL 相容性

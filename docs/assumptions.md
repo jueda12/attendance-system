@@ -51,3 +51,18 @@
 ---
 
 <!-- 新假設從此處開始新增 -->
+
+### A-002: 2026 PublicHoliday seed date list source
+
+- **Phase / Issue:** Phase 1 / #1
+- **Recorded by:** copilot
+- **Date:** 2026-04-22
+- **Status:** pending-confirmation
+- **Context:** Issue #1 requires seeding all 17 Hong Kong public holidays for 2026, but the repository does not include an explicit canonical date list in machine-readable format.
+- **Decision:** Seeded 17 entries in `backend/prisma/seed.ts` using the HKSAR Government public holiday calendar for 2026 (including observed days) for scaffolding verification.
+- **Rationale:** This unblocks Phase 1 scaffolding and allows deterministic integration tests for holiday table presence without blocking backend bootstrap.
+- **Alternatives considered:**
+  1. Skip holiday seed (rejected: would fail acceptance criteria)
+  2. Seed fewer placeholder rows (rejected: violates requirement for all 17 days)
+- **Impact if wrong:** Incorrect statutory/observed dates could affect downstream payroll/holiday calculations until corrected.
+- **Confirmed by:** (待確認)

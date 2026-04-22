@@ -1,0 +1,18 @@
+{
+  "name": "attendance-system",
+  "version": "1.0.0",
+  "description": "> 香港建造業 HR 內部出勤與薪酬管理系統 > Hong Kong construction industry — HR-internal attendance & payroll management",
+  "scripts": {
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "test": "npm run test -w backend && npm run test -w frontend",
+    "dev": "npm run dev -w backend & npm run dev -w frontend",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "lint": "npm run lint -w backend && npm run lint -w frontend"
+  },
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
+}

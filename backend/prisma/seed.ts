@@ -1,17 +1,12 @@
-import argon2 from 'argon2'
 import { PrismaClient } from '@prisma/client'
+import { hashPassword } from '../src/utils/password.util.js'
 
 const prisma = new PrismaClient()
 
 const toUtcDate = (date: string) => new Date(`${date}T00:00:00.000Z`)
 
 async function main() {
-  const passwordHash = await argon2.hash('TempPass123!', {
-    type: argon2.argon2id,
-    memoryCost: 19456,
-    timeCost: 2,
-    parallelism: 1
-  })
+  const passwordHash = await hashPassword('TempPass123!')
 
   await prisma.user.upsert({
     where: { username: 'admin' },

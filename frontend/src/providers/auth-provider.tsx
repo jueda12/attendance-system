@@ -6,12 +6,14 @@ type AuthUser = {
   username: string
   nameZh: string
   role: string
+  mustChangePwd: boolean
 }
 
 type AuthContextValue = {
   user: AuthUser | null
   loading: boolean
   login: (token: string) => Promise<void>
+  refreshUser: () => Promise<void>
   logout: () => void
 }
 
@@ -37,6 +39,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const login = async (token: string) => {
     saveToken(token)
+    await refreshUser()
+  }
+
+  const refreshUser = async () => {
     const response = await api.get<AuthUser>('/auth/me')
     setUser(response.data)
   }
@@ -46,7 +52,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, login, refreshUser, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

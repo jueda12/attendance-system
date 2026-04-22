@@ -7,7 +7,7 @@ describe('vite tailwind configuration', () => {
     const viteConfigPath = path.resolve(process.cwd(), 'vite.config.ts')
     const viteConfig = readFileSync(viteConfigPath, 'utf8')
 
-    expect(viteConfig).toContain("import tailwindcss from '@tailwindcss/vite'")
-    expect(viteConfig).toContain('tailwindcss()')
+    expect(viteConfig).toMatch(/import\s+tailwindcss\s+from\s+['"]@tailwindcss\/vite['"]/)
+    expect(viteConfig).toMatch(/plugins:\s*\[[\s\S]*tailwindcss\(\)/)
   })
 })

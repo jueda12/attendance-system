@@ -13,6 +13,17 @@ export const loginSchema = z.object({
   password: z.string().min(1, '請輸入密碼')
 })
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, '請輸入目前密碼'),
+  newPassword: z
+    .string()
+    .min(12, '新密碼最少需要 12 個字元')
+    .regex(/[A-Z]/, '新密碼必須包含大寫字母')
+    .regex(/[a-z]/, '新密碼必須包含小寫字母')
+    .regex(/[0-9]/, '新密碼必須包含數字')
+    .regex(/[^A-Za-z0-9]/, '新密碼必須包含特殊符號')
+})
+
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const ipAddress = req.ip ?? ''
@@ -21,7 +32,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       throw new AppError('登入已被鎖定，請 15 分鐘後再試', 429)
     }
 
-    const token = await authService.login(req.body.username, req.body.password, ipAddress)
+    const loginResult = await authService.login(req.body.username, req.body.password, ipAddress)
     resetFailedLogins(ipAddress)
 
     res.locals.username = req.body.username
@@ -31,7 +42,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     res.locals.action = 'login'
     res.locals.entity = 'auth'
 
-    res.json({ token })
+    res.json(loginResult)
   } catch (error) {
     const ipAddress = req.ip ?? ''
     recordFailedLogin(ipAddress)
@@ -46,6 +57,21 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       ipAddress,
       userAgent: req.headers['user-agent'] ?? null
     })
+    next(error)
+  }
+}
+
+export async function changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    await authService.changePassword(req.user!.id, req.body.currentPassword, req.body.newPassword)
+
+    res.locals.action = 'password_change'
+    res.locals.entity = 'auth'
+    res.locals.entityId = req.user!.id
+    res.locals.newValue = { event: 'password_changed' }
+
+    res.json({ success: true })
+  } catch (error) {
     next(error)
   }
 }

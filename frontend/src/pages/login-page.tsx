@@ -15,6 +15,10 @@ const schema = z.object({
 })
 
 type LoginForm = z.infer<typeof schema>
+type LoginResponse = {
+  token: string
+  mustChangePwd: boolean
+}
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -31,9 +35,9 @@ export function LoginPage() {
   const onSubmit = async (values: LoginForm) => {
     setErrorMessage('')
     try {
-      const response = await api.post<{ token: string }>('/auth/login', values)
+      const response = await api.post<LoginResponse>('/auth/login', values)
       await login(response.data.token)
-      navigate('/')
+      navigate(response.data.mustChangePwd ? '/change-password' : '/')
     } catch {
       setErrorMessage('登入失敗，請檢查帳號密碼')
     }

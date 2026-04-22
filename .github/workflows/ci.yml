@@ -18,9 +18,6 @@ jobs:
   backend:
     name: Backend (lint / typecheck / test)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,27 +27,28 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
       - name: Generate Prisma client
-        run: npx prisma generate
+        run: npm run prisma:generate -w backend
 
       - name: Run migrations (test DB)
         run: npx prisma migrate deploy
+        working-directory: backend
         env:
           DATABASE_URL: 'file:./test.db'
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint -w backend
 
       - name: Typecheck
-        run: npm run typecheck || npx tsc --noEmit
+        run: npm run typecheck -w backend
 
       - name: Test with coverage
-        run: npm run test:coverage
+        run: npm run test:coverage -w backend
         env:
           DATABASE_URL: 'file:./test.db'
           JWT_SECRET: 'ci-only-jwt-secret-do-not-use-in-production-32chars'
@@ -70,9 +68,6 @@ jobs:
   frontend:
     name: Frontend (lint / typecheck / test / build)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -82,22 +77,22 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint -w frontend
 
       - name: Typecheck
-        run: npm run typecheck || npx tsc --noEmit
+        run: npm run typecheck -w frontend
 
       - name: Test
-        run: npm run test -- --run
+        run: npm run test -w frontend
 
       - name: Build
-        run: npm run build
+        run: npm run build -w frontend
 
   # ---------------------------------------------------------
   # Security: npm audit (high/critical only)
@@ -115,12 +110,10 @@ jobs:
           node-version: '22'
 
       - name: Audit backend
-        working-directory: backend
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high --workspace=backend || true
 
       - name: Audit frontend
-        working-directory: frontend
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high --workspace=frontend || true
 
   # ---------------------------------------------------------
   # Decimal guard: reject monetary Number usage

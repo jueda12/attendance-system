@@ -1,0 +1,283 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Worker {
+  id                String    @id @default(cuid())
+  workerNo          String    @unique
+  nameZh            String
+  nameEn            String?
+  hkidMasked        String
+  hkidHash          String    @unique
+  phone             String?
+  address           String?
+  joinDate          DateTime
+  leaveDate         DateTime?
+  subcontractorId   String
+  subcontractor     Subcontractor @relation(fields: [subcontractorId], references: [id])
+  wageType          String
+  wageAmount        Decimal
+  defaultDailyHours Decimal   @default(8)
+  otMultiplier      Decimal   @default(1.0)
+  cwraNo            String?
+  cwraExpiry        DateTime?
+  greenCardNo       String?
+  greenCardExpiry   DateTime?
+  trades            String?
+  bankName          String?
+  bankAccountEnc    String?
+  status            String    @default("active")
+  remarks           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  attendances       Attendance[]
+  continuityLogs    ContinuityLog[]
+  payrolls          Payroll[]
+  leaves            LeaveRecord[]
+
+  @@index([subcontractorId])
+  @@index([status])
+  @@index([joinDate])
+}
+
+model Subcontractor {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  nameZh        String
+  nameEn        String?
+  brNo          String?
+  contactName   String?
+  contactPhone  String?
+  contactEmail  String?
+  status        String   @default("active")
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  workers       Worker[]
+  attendances   Attendance[]
+
+  @@index([status])
+}
+
+model Site {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  nameZh        String
+  address       String?
+  startDate     DateTime
+  endDate       DateTime?
+  pmName        String?
+  status        String    @default("active")
+  remarks       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  attendances   Attendance[]
+
+  @@index([status])
+  @@index([startDate])
+}
+
+model Attendance {
+  id               String   @id @default(cuid())
+  workerId         String
+  worker           Worker   @relation(fields: [workerId], references: [id])
+  siteId           String
+  site             Site     @relation(fields: [siteId], references: [id])
+  subcontractorId  String
+  subcontractor    Subcontractor @relation(fields: [subcontractorId], references: [id])
+  date             DateTime
+  clockIn          DateTime?
+  clockOut         DateTime?
+  lunchHours       Decimal   @default(1.0)
+  workHours        Decimal
+  overtimeHours    Decimal   @default(0)
+  dayType          String    @default("normal")
+  dailyWage        Decimal?
+  remarks          String?
+  deletedAt        DateTime?
+  deletedBy        String?
+  createdAt        DateTime  @default(now())
+  createdBy        String?
+  updatedAt        DateTime  @updatedAt
+  updatedBy        String?
+
+  @@unique([workerId, siteId, subcontractorId, date])
+  @@index([date])
+  @@index([workerId, date])
+  @@index([siteId, date])
+  @@index([subcontractorId, date])
+}
+
+model ContinuityLog {
+  id                 String   @id @default(cuid())
+  workerId           String
+  worker             Worker   @relation(fields: [workerId], references: [id])
+  weekStartDate      DateTime
+  weekEndDate        DateTime
+  weekHours          Decimal
+  rolling4WeekHours  Decimal
+  meets17hr          Boolean
+  meets18hr          Boolean
+  meets68hr          Boolean
+  meets468           Boolean
+  meets418           Boolean
+  rulesetUsed        String
+  continuousWeeks    Int
+  contractActive     Boolean
+  contractActiveDate DateTime?
+  calculatedAt       DateTime @default(now())
+  calculatedBy       String?
+
+  @@unique([workerId, weekEndDate])
+  @@index([workerId, weekEndDate])
+  @@index([contractActive])
+}
+
+model Payroll {
+  id                   String   @id @default(cuid())
+  workerId             String
+  worker               Worker   @relation(fields: [workerId], references: [id])
+  periodStart          DateTime
+  periodEnd            DateTime
+  basicWage            Decimal
+  overtimeWage         Decimal   @default(0)
+  holidayWage          Decimal   @default(0)
+  restdayWage          Decimal   @default(0)
+  typhoonWage          Decimal   @default(0)
+  leaveWage            Decimal   @default(0)
+  otherEarnings        Decimal   @default(0)
+  otherEarningsRemark  String?
+  grossWage            Decimal
+  mpfEmployee          Decimal   @default(0)
+  mpfEmployer          Decimal   @default(0)
+  otherDeductions      Decimal   @default(0)
+  otherDeductionRemark String?
+  netWage              Decimal
+  mpfSchemeUsed        String
+  calculationSnapshot  String
+  status               String    @default("draft")
+  approvedBy           String?
+  approvedAt           DateTime?
+  paidAt               DateTime?
+  remarks              String?
+  createdAt            DateTime  @default(now())
+  createdBy            String?
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([workerId, periodStart, periodEnd])
+  @@index([periodStart, periodEnd])
+  @@index([status])
+  @@index([workerId, periodEnd])
+}
+
+model LeaveRecord {
+  id                String   @id @default(cuid())
+  workerId          String
+  worker            Worker   @relation(fields: [workerId], references: [id])
+  startDate         DateTime
+  endDate           DateTime
+  leaveType         String
+  isPaid            Boolean
+  countsAsWorkHours Boolean   @default(false)
+  medicalCert       Boolean   @default(false)
+  remarks           String?
+  status            String    @default("approved")
+  approvedBy        String?
+  approvedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  createdBy         String?
+  updatedAt         DateTime  @updatedAt
+
+  @@index([workerId, startDate])
+  @@index([leaveType])
+}
+
+model MpfIndustryRate {
+  id             String   @id @default(cuid())
+  effectiveDate  DateTime
+  dailyMinIncome Decimal
+  dailyMaxIncome Decimal
+  employeeAmount Decimal
+  employerAmount Decimal
+  remarks        String?
+  createdAt      DateTime @default(now())
+  createdBy      String?
+
+  @@index([effectiveDate])
+  @@index([effectiveDate, dailyMinIncome])
+}
+
+model PublicHoliday {
+  id          String   @id @default(cuid())
+  date        DateTime @unique
+  nameZh      String
+  nameEn      String?
+  isStatutory Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+}
+
+model MinWageHistory {
+  id            String   @id @default(cuid())
+  effectiveDate DateTime @unique
+  hourlyRate    Decimal
+  remarks       String?
+  createdAt     DateTime @default(now())
+  createdBy     String?
+
+  @@index([effectiveDate])
+}
+
+model SystemConfig {
+  key       String   @id
+  value     String
+  valueType String
+  category  String
+  label     String
+  remarks   String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  nameZh        String
+  email         String?
+  passwordHash  String
+  role          String    @default("viewer")
+  status        String    @default("active")
+  mustChangePwd Boolean   @default(true)
+  lastLoginAt   DateTime?
+  lastLoginIp   String?
+  failedLogins  Int       @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  username  String?
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  String?
+  newValue  String?
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([userId, timestamp])
+  @@index([entity, entityId])
+}

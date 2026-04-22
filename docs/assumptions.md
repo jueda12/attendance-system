@@ -59,7 +59,7 @@
 - **Date:** 2026-04-22
 - **Status:** pending-confirmation
 - **Context:** Issue #1 requires seeding all 17 Hong Kong public holidays for 2026, but the repository does not include an explicit canonical date list in machine-readable format.
-- **Decision:** Seeded 17 entries in `backend/prisma/seed.ts` using a complete 17-day 2026 holiday set (including observed days) for scaffolding verification.
+- **Decision:** Seeded 17 entries in `backend/prisma/seed.ts` using the HKSAR Government public holiday calendar for 2026 (including observed days) for scaffolding verification.
 - **Rationale:** This unblocks Phase 1 scaffolding and allows deterministic integration tests for holiday table presence without blocking backend bootstrap.
 - **Alternatives considered:**
   1. Skip holiday seed (rejected: would fail acceptance criteria)

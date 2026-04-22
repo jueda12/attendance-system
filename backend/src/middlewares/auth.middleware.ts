@@ -13,7 +13,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
   const authHeader = req.headers.authorization
 
   if (!authHeader?.startsWith('Bearer ')) {
-    next(new AppError('Unauthorized', 401))
+    next(new AppError('未授權', 401))
     return
   }
 
@@ -22,13 +22,13 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
     req.user = { id: payload.sub, username: payload.username, role: payload.role }
     next()
   } catch {
-    next(new AppError('Unauthorized', 401))
+    next(new AppError('未授權', 401))
   }
 }
 
 export function requireAdmin(req: Request, _res: Response, next: NextFunction): void {
   if (!req.user || req.user.role !== 'admin') {
-    next(new AppError('Forbidden', 403))
+    next(new AppError('無權限', 403))
     return
   }
 

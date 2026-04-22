@@ -6,7 +6,7 @@ export const validateBody = <T>(schema: ZodSchema<T>) => (req: Request, _res: Re
   const result = schema.safeParse(req.body)
 
   if (!result.success) {
-    next(new AppError(result.error.issues[0]?.message ?? 'Validation error', 400))
+    next(new AppError(result.error.issues[0]?.message ?? '驗證錯誤', 400))
     return
   }
 

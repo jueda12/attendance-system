@@ -9,8 +9,8 @@ const authService = new AuthService()
 const auditService = new AuditService()
 
 export const loginSchema = z.object({
-  username: z.string().min(1, { error: 'username is required' }),
-  password: z.string().min(1, { error: 'password is required' })
+  username: z.string().min(1, '請輸入帳號'),
+  password: z.string().min(1, '請輸入密碼')
 })
 
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {

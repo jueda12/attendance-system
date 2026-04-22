@@ -31,7 +31,7 @@ export class AuthService {
 
     const options: SignOptions = {
       subject: user.id,
-      expiresIn: env.jwtExpiresIn as SignOptions['expiresIn']
+      expiresIn: env.jwtExpiresIn
     }
 
     return jwt.sign({ username: user.username, role: user.role }, env.jwtSecret, options)
@@ -41,7 +41,7 @@ export class AuthService {
     const user = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!user) {
-      throw new AppError('User not found', 404)
+      throw new AppError('用戶不存在', 404)
     }
 
     return {

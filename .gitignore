@@ -135,3 +135,6 @@ backups/
 # ==========================================
 ecosystem.config.local.js
 nginx/*.local.conf
+
+# Claude Code / MCP local cache
+.omc/

@@ -57,6 +57,14 @@
 
 - [ ] `schema.prisma` 完全符合規格文件的 Schema
 - [ ] 所有 `@unique`、`@@unique`、`@@index` 如規格所列
+- [ ] **`Worker` 使用新業務模型**（§3.1.8 + §4.1）：
+  - `workerCode @unique`（混合編碼）
+  - `hkidMasked` / `hkidHash` / `hkidEncrypted` 三欄並存
+  - **`hkidHash` 不是 `@unique`**（改 app-level 檢查於 `subcontractorId + status='active'` 範圍）
+  - `subcontractorId` 直接 FK（每筆 Worker 記錄屬於單一分判商）
+  - MPF 欄位：`mpfScheme`（預設 `"industry"`）、`mpf60DayReviewed`、`mpf60DayReviewedAt`、`mpf60DayDecision`、`mpfSchemeChangedAt`
+  - **無** `cwraNo / cwraExpiry / greenCardNo / greenCardExpiry / trades` 欄位（已搬 WorkerDocument）
+- [ ] `WorkerDocument` model 存在（§13 證件管理），6 種 docType 支援
 - [ ] `Attendance` 有 `@@unique([workerId, siteId, subcontractorId, date])`
 - [ ] `ContinuityLog` 有 `@@unique([workerId, weekEndDate])`
 - [ ] `Payroll` 有 `@@unique([workerId, periodStart, periodEnd])`
@@ -75,7 +83,9 @@
 
 - [ ] `prisma/seed.ts` 存在且可執行
 - [ ] 預設管理員帳號建立（`admin` / 臨時密碼）
-- [ ] `SystemConfig` 預設值完整（min_wage, mpf_monthly_min, mpf_monthly_max 等）
+- [ ] `SystemConfig` 預設值完整（§4.3 共 22 個 keys，不含廢除的 `casual_threshold_days` / `rehire_continuity_days`）
+- [ ] **新 MPF 相關 keys**：`mpf_60day_review_threshold`（取代舊 `casual_threshold_days`）
+- [ ] **新加密與證件 keys**：`document_storage_root`, `document_max_size_mb`, `document_allowed_mime`, `document_retention_years`, `hkid_encryption_key_version`, `document_encryption_key_version`, `cert_expiry_alert_days`
 - [ ] `MpfIndustryRate` 包含至少一版的完整行業計劃費率表
 - [ ] `PublicHoliday` 包含 2026 年全部 **15 個香港法定假日**（對照 PROJECT_SPEC.md §3.6；從勞工處官方 https://www.labour.gov.hk/tc/news/latest_holidays2026.htm 核對；冬節/聖誕節依 `SystemConfig.winter_holiday_choice` 擇一）
 - [ ] 可選：demo 資料（3 家分判商、5 個地盤、20 位工人、1 個月出勤）
@@ -103,6 +113,8 @@
 - [ ] 觸發連續性合約需連續 4 週符合
 - [ ] `contractActiveDate` 記錄首次觸發日期
 - [ ] 修改歷史出勤會觸發後續週重算
+- [ ] **§3.1.8 獨立僱主模型**：工時計算以單一 Worker 記錄為範圍，不跨分判商加總
+- [ ] **跨分判商跳槽驗證**：工人 A→B 後，B 的新 Worker 記錄 continuousWeeks 從 0 重新累計（不繼承 A 的歷史）
 - [ ] **所有 TC-CONT 測試案例通過（1.1 - 1.5）**
 
 ### C.2 MPF 行業計劃
@@ -123,12 +135,18 @@
 - [ ] 支援 `SystemConfig` 調整上下限（不硬編碼）
 - [ ] **所有 TC-MPF-MT 測試案例通過**
 
-### C.4 60 日臨時僱員轉換
+### C.4 60 日檢視機制（取代舊「自動轉換」）
 
-- [ ] `determineScheme(workerId, asOfDate)` 自動判斷
-- [ ] 受僱滿 60 日自動提示 HR
-- [ ] Dashboard / API 有待轉換工人清單
-- [ ] 薪酬計算使用對應計劃
+- [ ] **`determineScheme` 不再動態判定**，改為讀 `Worker.mpfScheme` 欄位（§3.2.5）
+- [ ] `check60DayReviewNeeded(workerId, asOfDate)` 輔助方法存在
+- [ ] `getPendingSchemeReviews(asOfDate)` 找出待檢視工人
+- [ ] `recordSchemeReviewDecision(workerId, decision, userId)` 記錄 HR 決定
+- [ ] 受僱滿 60 日且 `mpf60DayReviewed=false` 的工人出現在 `/api/alerts/scheme-change`
+- [ ] HR 選「繼續行業計劃」→ `mpfScheme` 不變、`mpf60DayReviewed=true`、`mpf60DayDecision='keep_industry'`
+- [ ] HR 選「轉一般計劃」→ `mpfScheme='master_trust'`、`mpfSchemeChangedAt=now`、`mpf60DayDecision='switch_to_master_trust'`
+- [ ] 檢視完成後該工人不再出現在 alert 清單
+- [ ] Dashboard 通知卡顯示待檢視工人數
+- [ ] 薪酬計算讀 `Worker.mpfScheme` 決定用 industry 還是 master_trust
 - [ ] **所有 TC-60D 測試案例通過**
 
 ### C.5 薪酬計算引擎
@@ -345,10 +363,18 @@
 
 ### H.2 資料保護
 
-- [ ] HKID 以遮罩 + hash 儲存，無明文
+- [ ] **HKID 方案 B（§4.1.2）**：`hkidMasked` + `hkidHash` + `hkidEncrypted` 三欄都存在
+- [ ] HKID 輸入正確 normalize（去括號、去空白、全大寫）
+- [ ] `hkidHash` 使用 SHA-256 of normalized
+- [ ] `hkidEncrypted` 使用 AES-256-GCM，格式 `v1:base64(iv):base64(ct):base64(authTag)`
+- [ ] 同分判商 active 範圍內 HKID 唯一性由 app-level check（不是 `@unique`）
+- [ ] 跨分判商可有同一 HKID（工人從 A 跳 B 正常情境）
+- [ ] API 回應預設用 `hkidMasked`；解密端點需 admin/hr 且寫入 AuditLog
+- [ ] viewer 呼叫解密端點 → 403
 - [ ] DB 檔案權限 chmod 600（Linux）
-- [ ] 敏感欄位（如銀行戶口）加密
-- [ ] API 回應不洩漏過多資訊（如不回傳 hash）
+- [ ] 證件檔案目錄權限 chmod 700
+- [ ] 敏感欄位（銀行戶口）加密
+- [ ] API 回應不洩漏過多資訊（如不回傳 hash / encrypted 原值）
 
 ### H.3 注入與漏洞
 
@@ -369,6 +395,31 @@
 
 - [ ] `npm audit` 無 high / critical 漏洞
 - [ ] Dependabot 設定啟用
+
+### H.6 加密金鑰管理（§9.4）
+
+- [ ] `HKID_ENCRYPTION_KEY`、`DOCUMENT_ENCRYPTION_KEY`、`ENCRYPTION_KEY` 三把金鑰在 `.env`
+- [ ] 啟動時驗證每把金鑰：存在、base64 decode 後 32 bytes、非 `changeme`、非全零
+- [ ] 缺金鑰 → 啟動失敗
+- [ ] `.env` 權限 chmod 600
+- [ ] SystemConfig 有版本追蹤欄位（`hkid_encryption_key_version` 等）
+- [ ] `npm run keys:backup` CLI 工具存在，可用 passphrase 產生加密備份檔
+- [ ] `npm run keys:recover --backup-file=...` CLI 工具存在，可用 passphrase 還原
+- [ ] 備份流程記錄於 deployment.md，admin 首次部署後必須執行演練
+
+### H.7 證件管理（§13）
+
+- [ ] 上傳檔案在寫入 filesystem 前使用 AES-256-GCM 加密
+- [ ] 每個 `WorkerDocument` 有 `fileChecksum`（SHA-256 of plaintext）
+- [ ] 下載時驗證 checksum，不符則拒絕
+- [ ] 上傳檔案檢查 magic bytes（不只信任 Content-Type）
+- [ ] 檔案大小 > `document_max_size_mb` → 400
+- [ ] MIME 類型不在 `document_allowed_mime` → 400
+- [ ] admin 才能 DELETE 證件，hr 呼叫 → 403
+- [ ] viewer 呼叫下載 → 403
+- [ ] 證件下載操作寫入 AuditLog（`action = "download"`）
+- [ ] 工人離職 7 年內證件仍保留（`Worker.status = deleted` 不連帶刪除 WorkerDocument）
+- [ ] `/alerts/cert-expiry?within=30` 返回 30 日內到期清單
 
 ---
 

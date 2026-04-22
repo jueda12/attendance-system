@@ -64,7 +64,7 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
     res.locals.action = 'password_change'
     res.locals.entity = 'auth'
     res.locals.entityId = req.user!.id
-    res.locals.newValue = { mustChangePwd: false }
+    res.locals.newValue = { passwordChanged: true, mustChangePwd: false }
     res.json({ success: true })
   } catch (error) {
     next(error)

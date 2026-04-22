@@ -65,6 +65,16 @@ describe('AuthService', () => {
   })
 
   it('throws 400 when new password equals current password', async () => {
+    findUnique.mockResolvedValue({
+      id: 'user-1',
+      username: 'admin',
+      role: 'admin',
+      status: 'active',
+      passwordHash: 'old-hash',
+      mustChangePwd: true
+    })
+    verifyPassword.mockResolvedValue(true)
+
     await expect(service.changePassword('user-1', 'SamePass123!', 'SamePass123!')).rejects.toMatchObject({
       message: 'NEW_PASSWORD_SAME_AS_OLD',
       statusCode: 400

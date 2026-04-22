@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import type { SignOptions } from 'jsonwebtoken'
+import { timingSafeEqual } from 'node:crypto'
 import { prisma } from '../lib/prisma.js'
 import { env } from '../config/env.js'
 import { AppError } from '../utils/app-error.js'
@@ -45,10 +46,6 @@ export class AuthService {
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
-    if (newPassword === currentPassword) {
-      throw new AppError('NEW_PASSWORD_SAME_AS_OLD', 400)
-    }
-
     const user = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!user || user.status !== 'active') {
@@ -59,6 +56,16 @@ export class AuthService {
 
     if (!valid) {
       throw new AppError('目前密碼錯誤', 401)
+    }
+
+    const currentPasswordBuffer = Buffer.from(currentPassword, 'utf8')
+    const newPasswordBuffer = Buffer.from(newPassword, 'utf8')
+    const isSamePassword =
+      currentPasswordBuffer.length === newPasswordBuffer.length &&
+      timingSafeEqual(currentPasswordBuffer, newPasswordBuffer)
+
+    if (isSamePassword) {
+      throw new AppError('NEW_PASSWORD_SAME_AS_OLD', 400)
     }
 
     const passwordHash = await hashPassword(newPassword)

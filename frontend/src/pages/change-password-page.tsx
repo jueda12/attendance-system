@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import axios from 'axios'
 import { api } from '@/lib/api'
 import { useAuth } from '@/providers/auth-provider'
 import { Button } from '@/components/ui/button'
@@ -48,7 +49,11 @@ export function ChangePasswordPage() {
       await refreshUser()
       reset()
       navigate('/')
-    } catch {
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.data?.message === 'NEW_PASSWORD_SAME_AS_OLD') {
+        setErrorMessage('新密碼不能與目前密碼相同')
+        return
+      }
       setErrorMessage('修改密碼失敗，請確認目前密碼是否正確')
     }
   }

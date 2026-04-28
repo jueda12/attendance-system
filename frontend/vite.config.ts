@@ -1,14 +1,14 @@
 import path from 'node:path'
-import { defineConfig, type PluginOption } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [
-    // Tailwind plugin type can resolve from the workspace root in npm workspaces,
-    // which may not match the local Vite type identity during TS build.
-    // Verified with @tailwindcss/vite@4.2.4 and vite@7.3.2.
-    tailwindcss() as unknown as PluginOption,
+    // @ts-expect-error: @tailwindcss/vite@4.x resolves Vite internals from the
+    // workspace root (rolldown-based) while the local vite package uses rollup-based
+    // types, causing a structural mismatch. Runtime behaviour is correct.
+    tailwindcss(),
     react({
       babel: {
         plugins: ['babel-plugin-react-compiler']

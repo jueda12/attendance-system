@@ -1,13 +1,19 @@
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import viteConfig from '../../vite.config'
 
 describe('vite tailwind configuration', () => {
   it('loads @tailwindcss/vite plugin', () => {
-    const viteConfigPath = path.resolve(process.cwd(), 'vite.config.ts')
-    const viteConfig = readFileSync(viteConfigPath, 'utf8')
-
-    expect(viteConfig).toMatch(/import\s+tailwindcss\s+from\s+['"]@tailwindcss\/vite['"]/)
-    expect(viteConfig).toMatch(/plugins:\s*\[[\s\S]*tailwindcss\(\)/)
+    const plugins = (viteConfig.plugins ?? []).flat()
+    const hasTailwind = plugins.some(
+      (p) =>
+        p !== null &&
+        p !== false &&
+        typeof p === 'object' &&
+        'name' in p &&
+        typeof (p as { name: string }).name === 'string' &&
+        (p as { name: string }).name.includes('tailwind')
+    )
+    expect(hasTailwind).toBe(true)
   })
 })

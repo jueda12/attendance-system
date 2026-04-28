@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     // @ts-expect-error: @tailwindcss/vite@4.x resolves Vite internals from the
     // workspace root (rolldown-based) while the local vite package uses rollup-based
-    // types, causing a structural mismatch. Runtime behaviour is correct.
+    // types, causing a structural mismatch. Runtime behavior is correct.
     tailwindcss(),
     react({
       babel: {

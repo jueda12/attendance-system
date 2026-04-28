@@ -12,7 +12,7 @@ describe('vite tailwind configuration', () => {
         typeof p === 'object' &&
         'name' in p &&
         typeof (p as { name: string }).name === 'string' &&
-        (p as { name: string }).name.includes('tailwind')
+        (p as { name: string }).name.toLowerCase().includes('tailwind')
     )
     expect(hasTailwind).toBe(true)
   })

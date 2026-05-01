@@ -54,7 +54,7 @@ export class AuthService {
     const valid = await verifyPassword(user.passwordHash, currentPassword)
 
     if (!valid) {
-      throw new AppError('目前密碼錯誤', 401)
+      throw new AppError('INVALID_CURRENT_PASSWORD', 400)
     }
 
     const isSamePassword = await verifyPassword(user.passwordHash, newPassword)

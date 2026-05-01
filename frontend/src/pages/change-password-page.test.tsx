@@ -98,6 +98,34 @@ describe('ChangePasswordPage', () => {
     expect(navigateMock).toHaveBeenCalledWith('/')
   })
 
+  it('shows specific error when current password is invalid', async () => {
+    vi.mocked(axios.isAxiosError).mockReturnValue(true)
+    postMock.mockRejectedValue({
+      response: {
+        status: 400,
+        data: {
+          message: 'INVALID_CURRENT_PASSWORD'
+        }
+      }
+    })
+
+    render(
+      <MemoryRouter>
+        <ChangePasswordPage />
+      </MemoryRouter>
+    )
+
+    fireEvent.change(screen.getByLabelText('目前密碼'), { target: { value: 'WrongPass123!' } })
+    fireEvent.change(screen.getByLabelText('新密碼'), { target: { value: 'NewPass123!@#' } })
+    fireEvent.change(screen.getByLabelText('確認新密碼'), { target: { value: 'NewPass123!@#' } })
+    fireEvent.click(screen.getByRole('button', { name: '更新密碼' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('目前密碼不正確')).toBeInTheDocument()
+    })
+    expect(navigateMock).not.toHaveBeenCalled()
+  })
+
   it('shows specific error when new password matches current password', async () => {
     vi.mocked(axios.isAxiosError).mockReturnValue(true)
     postMock.mockRejectedValue({

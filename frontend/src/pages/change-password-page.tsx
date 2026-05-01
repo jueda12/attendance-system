@@ -53,9 +53,16 @@ export function ChangePasswordPage() {
       reset()
       navigate('/')
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.data?.message === 'NEW_PASSWORD_SAME_AS_OLD') {
-        setErrorMessage('新密碼不能與目前密碼相同')
-        return
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message
+        if (message === 'NEW_PASSWORD_SAME_AS_OLD') {
+          setErrorMessage('新密碼不能與目前密碼相同')
+          return
+        }
+        if (message === 'INVALID_CURRENT_PASSWORD') {
+          setErrorMessage('目前密碼不正確')
+          return
+        }
       }
       setErrorMessage('修改密碼失敗，請確認目前密碼是否正確')
     }

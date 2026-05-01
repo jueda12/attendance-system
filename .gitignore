@@ -138,3 +138,5 @@ nginx/*.local.conf
 
 # Claude Code / MCP local cache
 .omc/
+
+.claude/

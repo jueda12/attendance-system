@@ -3,6 +3,18 @@ import { AppError } from '../utils/app-error.js'
 
 export function errorMiddleware(error: unknown, _req: Request, res: Response, _next: NextFunction): void {
   if (error instanceof AppError) {
+    if (error.metadata?.code) {
+      res.status(error.statusCode).json({
+        success: false,
+        error: {
+          code: error.metadata.code,
+          message: error.message,
+          details: error.metadata.details
+        }
+      })
+      return
+    }
+
     res.status(error.statusCode).json({ message: error.message })
     return
   }

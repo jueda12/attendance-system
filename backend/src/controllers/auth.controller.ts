@@ -31,15 +31,13 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       throw new AppError('登入已被鎖定，請 15 分鐘後再試', 429)
     }
 
-    const loginResult = await authService.login(req.body.username, req.body.password, ipAddress)
+    const loginResult = await authService.login(
+      req.body.username,
+      req.body.password,
+      ipAddress,
+      req.headers['user-agent'] ?? null
+    )
     resetFailedLogins(ipAddress)
-
-    res.locals.username = req.body.username
-    res.locals.entityId = req.body.username
-    res.locals.newValue = { event: 'login_success' }
-
-    res.locals.action = 'login'
-    res.locals.entity = 'auth'
 
     res.json(loginResult)
   } catch (error) {

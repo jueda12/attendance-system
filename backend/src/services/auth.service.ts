@@ -11,7 +11,12 @@ type LoginResult = {
 }
 
 export class AuthService {
-  async login(username: string, password: string, ipAddress: string | null): Promise<LoginResult> {
+  async login(
+    username: string,
+    password: string,
+    ipAddress: string | null,
+    userAgent: string | null = null
+  ): Promise<LoginResult> {
     const user = await prisma.user.findUnique({ where: { username } })
 
     if (!user || user.status !== 'active') {
@@ -24,14 +29,33 @@ export class AuthService {
       throw new AppError('帳號或密碼錯誤', 401)
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        lastLoginAt: new Date(),
-        lastLoginIp: ipAddress,
-        failedLogins: 0,
-        lockedUntil: null
-      }
+    const lastLoginAt = new Date()
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          lastLoginAt,
+          lastLoginIp: ipAddress,
+          failedLogins: 0,
+          lockedUntil: null
+        }
+      })
+
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          username: user.username,
+          action: 'login',
+          entity: 'auth',
+          entityId: user.username,
+          oldValue: null,
+          newValue: JSON.stringify({ event: 'login_success', lastLoginAt: lastLoginAt.toISOString() }),
+          ipAddress,
+          userAgent,
+          timestamp: lastLoginAt
+        }
+      })
     })
 
     const options: SignOptions = {

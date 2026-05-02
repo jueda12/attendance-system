@@ -4,6 +4,9 @@ import { prisma } from '../lib/prisma.js'
 import { env } from '../config/env.js'
 import { AppError } from '../utils/app-error.js'
 import { hashPassword, verifyPassword } from '../utils/password.util.js'
+import { AuditService } from './audit.service.js'
+
+const auditService = new AuditService()
 
 type LoginResult = {
   token: string
@@ -68,7 +71,13 @@ export class AuthService {
     return { token, mustChangePwd: user.mustChangePwd }
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    ipAddress: string | null = null,
+    userAgent: string | null = null
+  ): Promise<void> {
     const user = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!user || user.status !== 'active') {
@@ -89,12 +98,42 @@ export class AuthService {
 
     const passwordHash = await hashPassword(newPassword)
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        passwordHash,
-        mustChangePwd: false
-      }
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          mustChangePwd: false
+        }
+      })
+
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          username: user.username,
+          action: 'password_change',
+          entity: 'auth',
+          entityId: user.id,
+          oldValue: null,
+          newValue: JSON.stringify({ passwordChanged: true, mustChangePwd: false }),
+          ipAddress,
+          userAgent
+        }
+      })
+    })
+  }
+
+  async logout(userId: string, username: string, ipAddress: string | null, userAgent: string | null): Promise<void> {
+    await auditService.create({
+      userId,
+      username,
+      action: 'logout',
+      entity: 'auth',
+      entityId: userId,
+      oldValue: null,
+      newValue: JSON.stringify({ event: 'logout' }),
+      ipAddress,
+      userAgent
     })
   }
 

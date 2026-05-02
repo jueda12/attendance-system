@@ -60,23 +60,26 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 
 export async function changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    await authService.changePassword(req.user!.id, req.body.currentPassword, req.body.newPassword)
-    res.locals.action = 'password_change'
-    res.locals.entity = 'auth'
-    res.locals.entityId = req.user!.id
-    res.locals.newValue = { passwordChanged: true, mustChangePwd: false }
+    await authService.changePassword(
+      req.user!.id,
+      req.body.currentPassword,
+      req.body.newPassword,
+      req.ip ?? '',
+      req.headers['user-agent'] ?? null
+    )
     res.json({ success: true })
   } catch (error) {
     next(error)
   }
 }
 
-export async function logout(req: Request, res: Response): Promise<void> {
-  res.locals.action = 'logout'
-  res.locals.entity = 'auth'
-  res.locals.entityId = req.user?.id
-  res.locals.newValue = { event: 'logout' }
-  res.json({ success: true })
+export async function logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    await authService.logout(req.user!.id, req.user!.username, req.ip ?? '', req.headers['user-agent'] ?? null)
+    res.json({ success: true })
+  } catch (error) {
+    next(error)
+  }
 }
 
 export async function me(req: Request, res: Response, next: NextFunction): Promise<void> {

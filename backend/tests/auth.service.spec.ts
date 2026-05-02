@@ -175,7 +175,7 @@ describe('AuthService', () => {
     })
   })
 
-  it('updates hash and clears mustChangePwd on successful change', async () => {
+  it('updates hash, clears mustChangePwd, and audits password change in one transaction', async () => {
     findUnique.mockResolvedValue({
       id: 'user-1',
       username: 'admin',
@@ -187,16 +187,72 @@ describe('AuthService', () => {
     verifyPassword.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
     hashPassword.mockResolvedValue('new-hash')
     update.mockResolvedValue({})
+    auditLogCreate.mockResolvedValue({})
 
-    await service.changePassword('user-1', 'TempPass123!', 'NewTempPass123!')
+    await service.changePassword('user-1', 'TempPass123!', 'NewTempPass123!', '127.0.0.1', 'vitest-agent')
 
     expect(hashPassword).toHaveBeenCalledWith('NewTempPass123!')
+    expect(transaction).toHaveBeenCalledOnce()
     expect(update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: {
         passwordHash: 'new-hash',
         mustChangePwd: false
       }
+    })
+    expect(auditLogCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-1',
+        username: 'admin',
+        action: 'password_change',
+        entity: 'auth',
+        entityId: 'user-1',
+        oldValue: null,
+        newValue: JSON.stringify({ passwordChanged: true, mustChangePwd: false }),
+        ipAddress: '127.0.0.1',
+        userAgent: 'vitest-agent'
+      })
+    })
+  })
+
+  it('keeps password change update and audit write in one transaction', async () => {
+    findUnique.mockResolvedValue({
+      id: 'user-1',
+      username: 'admin',
+      role: 'admin',
+      status: 'active',
+      passwordHash: 'old-hash',
+      mustChangePwd: true
+    })
+    verifyPassword.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+    hashPassword.mockResolvedValue('new-hash')
+    update.mockResolvedValue({})
+    auditLogCreate.mockRejectedValue(new Error('audit failed'))
+
+    await expect(service.changePassword('user-1', 'TempPass123!', 'NewTempPass123!')).rejects.toThrow('audit failed')
+    expect(transaction).toHaveBeenCalledOnce()
+    expect(update).toHaveBeenCalledOnce()
+    expect(auditLogCreate).toHaveBeenCalledOnce()
+  })
+
+  it('writes logout audit from the auth service', async () => {
+    auditLogCreate.mockResolvedValue({})
+
+    await service.logout('user-1', 'admin', '127.0.0.1', 'vitest-agent')
+
+    expect(auditLogCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-1',
+        username: 'admin',
+        action: 'logout',
+        entity: 'auth',
+        entityId: 'user-1',
+        oldValue: null,
+        newValue: JSON.stringify({ event: 'logout' }),
+        ipAddress: '127.0.0.1',
+        userAgent: 'vitest-agent',
+        timestamp: expect.any(Date)
+      })
     })
   })
 })

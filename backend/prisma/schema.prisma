@@ -8,39 +8,51 @@ datasource db {
 }
 
 model Worker {
-  id                String    @id @default(cuid())
-  workerNo          String    @unique
-  nameZh            String
-  nameEn            String?
-  hkidMasked        String
-  hkidHash          String    @unique
-  phone             String?
-  address           String?
-  joinDate          DateTime
-  leaveDate         DateTime?
-  subcontractorId   String
-  subcontractor     Subcontractor @relation(fields: [subcontractorId], references: [id])
-  wageType          String
-  wageAmount        Decimal
-  defaultDailyHours Decimal   @default(8)
-  otMultiplier      Decimal   @default(1.0)
-  cwraNo            String?
-  cwraExpiry        DateTime?
-  greenCardNo       String?
-  greenCardExpiry   DateTime?
-  trades            String?
-  bankName          String?
-  bankAccountEnc    String?
-  status            String    @default("active")
-  remarks           String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  attendances       Attendance[]
-  continuityLogs    ContinuityLog[]
-  payrolls          Payroll[]
-  leaves            LeaveRecord[]
+  id                 String    @id @default(cuid())
+  workerCode         String    @unique
+  nameZh             String
+  nameEn             String?
+  hkidMasked         String
+  hkidHash           String
+  hkidEncrypted      String
+  phone              String?
+  address            String?
+  joinDate           DateTime
+  leaveDate          DateTime?
+  leaveReason        String?
+  subcontractorId    String
+  subcontractor      Subcontractor @relation(fields: [subcontractorId], references: [id])
+  wageType           String
+  wageAmount         Decimal
+  defaultDailyHours  Decimal   @default(8)
+  otMultiplier       Decimal   @default(1.0)
+  cwraNo             String?
+  cwraExpiry         DateTime?
+  greenCardNo        String?
+  greenCardExpiry    DateTime?
+  trades             String?
+  mpfScheme          String    @default("industry")
+  mpfTrustee         String?
+  mpfAccountNo       String?
+  mpf60DayReviewed   Boolean   @default(false)
+  mpf60DayReviewedAt DateTime?
+  mpf60DayDecision   String?
+  mpfSchemeChangedAt DateTime?
+  bankName           String?
+  bankAccountEnc     String?
+  bankAccountMasked  String?
+  status             String    @default("active")
+  remarks            String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  attendances        Attendance[]
+  continuityLogs     ContinuityLog[]
+  payrolls           Payroll[]
+  leaves             LeaveRecord[]
 
   @@index([subcontractorId])
+  @@index([subcontractorId, status])
+  @@index([hkidHash])
   @@index([status])
   @@index([joinDate])
 }

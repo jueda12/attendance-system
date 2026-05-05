@@ -41,6 +41,8 @@
 ## Source of truth
 
 `docs/PROJECT_SPEC.md` 與 `docs/assumptions.md` 是 source of truth；如本文件與 docs 衝突，以 docs 為準。
+## Collaboration 規則（學自 PR #23 / Phase 2b PR-1）
+
 實作 PR 時遵守以下五條規則。違反任一條視為越界、需在計畫或實作階段被 push back。
 ### A. Schema / API endpoint discipline
 

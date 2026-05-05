@@ -140,3 +140,5 @@ nginx/*.local.conf
 .omc/
 
 .claude/
+compact-notes/
+phase-*-plan.md
